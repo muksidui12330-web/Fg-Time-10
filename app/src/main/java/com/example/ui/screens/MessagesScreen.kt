@@ -41,6 +41,8 @@ fun MessagesScreen(
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var showNewChatDialog by remember { mutableStateOf(false) }
+    var userSearchQuery by remember { mutableStateOf("") }
 
     val filteredConversations = remember(searchQuery, conversations) {
         if (searchQuery.isBlank()) conversations
@@ -70,10 +72,11 @@ fun MessagesScreen(
             )
             FilledTonalButton(
                 onClick = {
-                    if (suggestedUsers.isNotEmpty()) onStartNewChat(suggestedUsers.first())
+                    showNewChatDialog = true
                 },
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.testTag("messages_new_chat_button")
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
@@ -267,5 +270,113 @@ fun MessagesScreen(
                 }
             }
         }
+    }
+
+    if (showNewChatDialog) {
+        val filteredUsers = remember(userSearchQuery, suggestedUsers) {
+            if (userSearchQuery.isBlank()) suggestedUsers
+            else suggestedUsers.filter {
+                it.fullName.contains(userSearchQuery, ignoreCase = true) ||
+                it.username.contains(userSearchQuery, ignoreCase = true)
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = {
+                showNewChatDialog = false
+                userSearchQuery = ""
+            },
+            title = {
+                Text("Start a New Chat", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp)
+                ) {
+                    TextField(
+                        value = userSearchQuery,
+                        onValueChange = { userSearchQuery = it },
+                        placeholder = { Text("Search by name or username...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = LeafPrimary) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    if (filteredUsers.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "No members found",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 13.sp
+                            )
+                        }
+                    } else {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(filteredUsers) { user ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            showNewChatDialog = false
+                                            userSearchQuery = ""
+                                            onStartNewChat(user)
+                                        }
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AsyncImage(
+                                        model = user.avatarUrl,
+                                        contentDescription = user.fullName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = user.fullName,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        Text(
+                                            text = "@${user.username}",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Message",
+                                        tint = LeafPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showNewChatDialog = false
+                        userSearchQuery = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

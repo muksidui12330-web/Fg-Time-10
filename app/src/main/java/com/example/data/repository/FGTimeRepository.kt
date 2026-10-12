@@ -29,9 +29,9 @@ class FGTimeRepository {
             isPrivate = false,
             isOnline = true,
             lastActive = "Online",
-            followersCount = 1420,
-            followingCount = 380,
-            postsCount = 6,
+            followersCount = 14,
+            followingCount = 12,
+            postsCount = 4,
             isAdmin = true
         )
     )
@@ -68,6 +68,14 @@ class FGTimeRepository {
     private val _reports = MutableStateFlow<List<ReportItem>>(emptyList())
     val reports: StateFlow<List<ReportItem>> = _reports.asStateFlow()
 
+    private val _betaFeedbacks = MutableStateFlow<List<BetaFeedback>>(emptyList())
+    val betaFeedbacks: StateFlow<List<BetaFeedback>> = _betaFeedbacks.asStateFlow()
+
+    private val _blockedUserIds = MutableStateFlow<Set<String>>(emptySet())
+    val blockedUserIds: StateFlow<Set<String>> = _blockedUserIds.asStateFlow()
+
+    private val registeredAccounts = mutableMapOf<String, User>()
+
     private val _activeCall = MutableStateFlow<ActiveCall?>(null)
     val activeCall: StateFlow<ActiveCall?> = _activeCall.asStateFlow()
 
@@ -90,9 +98,9 @@ class FGTimeRepository {
                 bio = "Botanical illustrator 🌸 Exploring emerald valleys | FG TIME advocate",
                 website = "mayachen.art",
                 isVerified = true,
-                followersCount = 3540,
-                followingCount = 420,
-                postsCount = 48,
+                followersCount = 34,
+                followingCount = 20,
+                postsCount = 8,
                 isFollowing = true
             ),
             User(
@@ -102,9 +110,9 @@ class FGTimeRepository {
                 avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400",
                 bio = "Sustainable cities & vertical forests 🏢🌿",
                 isVerified = true,
-                followersCount = 8900,
-                followingCount = 612,
-                postsCount = 114,
+                followersCount = 42,
+                followingCount = 18,
+                postsCount = 14,
                 isFollowing = false
             ),
             User(
@@ -113,9 +121,9 @@ class FGTimeRepository {
                 fullName = "Clara Dupont",
                 avatarUrl = "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400",
                 bio = "Wanderlust • Hiking peaks across Patagonia and Bali 🎒✨",
-                followersCount = 1250,
-                followingCount = 890,
-                postsCount = 29,
+                followersCount = 25,
+                followingCount = 19,
+                postsCount = 6,
                 isFollowing = true
             ),
             User(
@@ -124,9 +132,9 @@ class FGTimeRepository {
                 fullName = "Zen Roast",
                 avatarUrl = "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=400",
                 bio = "Organic shade-grown single origin coffee lovers ☕🍃",
-                followersCount = 4120,
-                followingCount = 205,
-                postsCount = 67,
+                followersCount = 31,
+                followingCount = 15,
+                postsCount = 7,
                 isFollowing = false
             )
         )
@@ -262,8 +270,8 @@ class FGTimeRepository {
                 userAvatar = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400",
                 caption = "How rain droplets bead on lotus leaves (Superhydrophobicity in nature! 💧🍃) #NatureFacts #FGTime",
                 audioTrack = "Maya Chen • Lo-Fi Rain Beats",
-                likesCount = 14200,
-                commentsCount = 890,
+                likesCount = 42,
+                commentsCount = 8,
                 videoGradientColors = listOf(0xFF004D40, 0xFF00C853, 0xFF12372A)
             ),
             Reel(
@@ -273,8 +281,8 @@ class FGTimeRepository {
                 userAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400",
                 caption = "Touring the world's tallest indoor waterfall & biodome! 🌿🌊 Sustainable architecture is here.",
                 audioTrack = "Original Audio • Sustainable Futures",
-                likesCount = 38500,
-                commentsCount = 2100,
+                likesCount = 85,
+                commentsCount = 12,
                 videoGradientColors = listOf(0xFF0D47A1, 0xFF00897B, 0xFF1B5E20)
             ),
             Reel(
@@ -284,8 +292,8 @@ class FGTimeRepository {
                 userAvatar = "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400",
                 caption = "Sunset drone shot soaring over Bali emerald rice terraces 🌾🌅 Pure serenity.",
                 audioTrack = "Tropical Serenade • Chillout Lounge",
-                likesCount = 22100,
-                commentsCount = 980,
+                likesCount = 61,
+                commentsCount = 9,
                 videoGradientColors = listOf(0xFFE65100, 0xFF2E7D32, 0xFF12372A)
             )
         )
@@ -352,8 +360,7 @@ class FGTimeRepository {
         _notifications.value = notifs
 
         val initialReports = listOf(
-            ReportItem("rep1", "POST", "p99", "Inappropriate commercial spam link", "maya_nature", "Yesterday", "PENDING"),
-            ReportItem("rep2", "USER", "spambot88", "Unsolicited promotional bot messages", "clara_travels", "2d ago", "RESOLVED")
+            ReportItem("rep1", "POST", "p99", "Inappropriate commercial advertising link", "maya_nature", "Yesterday", "PENDING")
         )
         _reports.value = initialReports
     }
@@ -379,7 +386,14 @@ class FGTimeRepository {
         }
     }
 
-    fun createPost(caption: String, imageUrl: String, location: String = "", tags: List<String> = emptyList()) {
+    fun createPost(
+        caption: String,
+        imageUrl: String,
+        videoUrl: String? = null,
+        isVideo: Boolean = false,
+        location: String = "",
+        tags: List<String> = emptyList()
+    ) {
         val user = currentUser.value
         val newPost = Post(
             id = "p_${UUID.randomUUID()}",
@@ -389,21 +403,48 @@ class FGTimeRepository {
             isVerified = user.isVerified,
             caption = caption,
             imageUrl = imageUrl.ifBlank { "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=800" },
+            videoUrl = videoUrl,
+            isVideo = isVideo,
             location = location,
             timestamp = "Just now",
-            likesCount = 1,
+            likesCount = 0,
             commentsCount = 0,
-            isLiked = true,
+            isLiked = false,
             isSaved = false,
             tags = tags
         )
         _posts.update { listOf(newPost) + it }
-        currentUser.update { it.copy(postsCount = it.postsCount + 1) }
+        currentUser.update { current ->
+            val updated = current.copy(postsCount = current.postsCount + 1)
+            registeredAccounts[updated.username] = updated
+            registeredAccounts[updated.id] = updated
+            updated
+        }
+
+        if (isVideo && videoUrl != null) {
+            val newReel = Reel(
+                id = "r_${UUID.randomUUID()}",
+                userId = user.id,
+                username = user.username,
+                userAvatar = user.avatarUrl,
+                caption = caption,
+                audioTrack = "Original Audio • ${user.fullName}",
+                likesCount = 0,
+                commentsCount = 0,
+                videoGradientColors = listOf(0xFF004D40, 0xFF00C853, 0xFF12372A)
+            )
+            _reels.update { listOf(newReel) + it }
+        }
     }
 
     fun deletePost(postId: String) {
         _posts.update { it.filterNot { post -> post.id == postId } }
-        currentUser.update { it.copy(postsCount = (it.postsCount - 1).coerceAtLeast(0)) }
+        currentUser.update { current ->
+            val updated = current.copy(postsCount = (current.postsCount - 1).coerceAtLeast(0))
+            registeredAccounts[updated.username] = updated
+            registeredAccounts[updated.id] = updated
+            updated
+        }
     }
 
     fun editPostCaption(postId: String, newCaption: String) {
@@ -558,22 +599,30 @@ class FGTimeRepository {
         val target = _suggestedUsers.value.find { it.id == userId }
         if (target != null) {
             val delta = if (target.isFollowing) 1 else -1
-            currentUser.update { it.copy(followingCount = (it.followingCount + delta).coerceAtLeast(0)) }
+            currentUser.update { current ->
+                val updated = current.copy(followingCount = (current.followingCount + delta).coerceAtLeast(0))
+                registeredAccounts[updated.username] = updated
+                registeredAccounts[updated.id] = updated
+                updated
+            }
         }
     }
 
     // Profile updates
     fun updateProfile(fullName: String, username: String, bio: String, website: String, avatarUrl: String, coverUrl: String, isPrivate: Boolean) {
-        currentUser.update {
-            it.copy(
+        currentUser.update { current ->
+            val updated = current.copy(
                 fullName = fullName,
                 username = username,
                 bio = bio,
                 website = website,
-                avatarUrl = avatarUrl.ifBlank { it.avatarUrl },
-                coverUrl = coverUrl.ifBlank { it.coverUrl },
+                avatarUrl = avatarUrl.ifBlank { current.avatarUrl },
+                coverUrl = coverUrl.ifBlank { current.coverUrl },
                 isPrivate = isPrivate
             )
+            registeredAccounts[updated.username] = updated
+            registeredAccounts[updated.id] = updated
+            updated
         }
     }
 
@@ -603,6 +652,34 @@ class FGTimeRepository {
         }
     }
 
+    // Beta Feedback
+    fun submitBetaFeedback(rating: Int, category: String, comment: String, deviceModel: String, osVersion: String) {
+        val user = currentUser.value
+        val feedback = BetaFeedback(
+            id = "fb_${UUID.randomUUID().toString().take(8)}",
+            userId = user.id,
+            username = user.username,
+            rating = rating,
+            category = category,
+            comment = comment,
+            deviceModel = deviceModel,
+            osVersion = osVersion,
+            timestamp = "Just now"
+        )
+        _betaFeedbacks.update { listOf(feedback) + it }
+    }
+
+    // User Blocking
+    fun blockUser(userId: String) {
+        _blockedUserIds.update { it + userId }
+        _posts.update { it.filterNot { post -> post.userId == userId } }
+        _conversations.update { it.filterNot { conv -> conv.participant.id == userId } }
+    }
+
+    fun unblockUser(userId: String) {
+        _blockedUserIds.update { it - userId }
+    }
+
     // Auth actions
     fun loginWithDemo() {
         isDemoMode.value = true
@@ -612,15 +689,50 @@ class FGTimeRepository {
     fun loginWithCredentials(emailOrPhone: String, username: String) {
         isDemoMode.value = false
         isAuthenticated.value = true
-        currentUser.update {
-            it.copy(
-                username = username.ifBlank { "green_member" },
-                fullName = if (username.isNotBlank()) username.replaceFirstChar { c -> c.uppercase() } else "FG Member"
+
+        val key = emailOrPhone.ifBlank { username }.trim()
+        val uname = username.ifBlank { key }.trim()
+        val existing = registeredAccounts[key]
+            ?: registeredAccounts[uname]
+            ?: registeredAccounts.values.find { it.username.equals(uname, ignoreCase = true) || it.username.equals(key, ignoreCase = true) }
+
+        if (existing != null) {
+            currentUser.value = existing
+        } else {
+            val newUser = User(
+                id = "user_${UUID.randomUUID().toString().take(8)}",
+                username = uname.ifBlank { "green_member" },
+                fullName = if (uname.isNotBlank()) uname.replaceFirstChar { c -> c.uppercase() } else "FG Member",
+                avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400",
+                bio = "🌿 FG TIME creator",
+                followersCount = 0,
+                followingCount = 0,
+                postsCount = 0,
+                isVerified = false,
+                isAdmin = false
             )
+            registeredAccounts[key] = newUser
+            registeredAccounts[uname] = newUser
+            registeredAccounts[newUser.id] = newUser
+            currentUser.value = newUser
         }
     }
 
+    fun deleteAccount() {
+        val currentId = currentUser.value.id
+        _posts.update { it.filterNot { p -> p.userId == currentId } }
+        _stories.update { it.filterNot { s -> s.userId == currentId } }
+        _reels.update { it.filterNot { r -> r.userId == currentId } }
+        registeredAccounts.remove(currentUser.value.username)
+        registeredAccounts.remove(currentId)
+        isAuthenticated.value = false
+    }
+
     fun logout() {
+        // Save current profile to cache before logging out
+        val user = currentUser.value
+        registeredAccounts[user.username] = user
+        registeredAccounts[user.id] = user
         isAuthenticated.value = false
     }
 }

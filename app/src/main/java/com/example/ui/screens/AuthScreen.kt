@@ -32,6 +32,7 @@ import com.example.ui.theme.LeafPrimaryDark
 @Composable
 fun AuthScreen(
     onLoginSuccess: (emailOrPhone: String, username: String) -> Unit,
+    onGoogleSignIn: () -> Unit,
     onDemoLogin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -344,6 +345,32 @@ fun AuthScreen(
         }
 
         Spacer(modifier = Modifier.height(6.dp))
+
+        // Google Sign-In Button (Official Jetpack Credential Manager)
+        OutlinedButton(
+            onClick = onGoogleSignIn,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .testTag("auth_google_signin_button"),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurface
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = "Google Sign-In",
+                tint = LeafPrimary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Continue with Google",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+        }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 

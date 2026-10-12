@@ -27,11 +27,17 @@ fun SettingsScreen(
     onToggleDarkMode: (Boolean) -> Unit,
     isPrivateAccount: Boolean,
     onTogglePrivate: (Boolean) -> Unit,
+    onSendFeedback: () -> Unit,
     onLogout: () -> Unit,
+    onDeleteAccount: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showPrivacyDialog by remember { mutableStateOf(false) }
+    var showSecurityDialog by remember { mutableStateOf(false) }
+    var showGuidelinesDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
     var dataSaver by remember { mutableStateOf(false) }
     var activityStatus by remember { mutableStateOf(true) }
 
@@ -142,16 +148,18 @@ fun SettingsScreen(
                 }
             }
 
-            // Section: About & Support
-            SettingsSectionHeader(title = "Platform")
+            // Section: Beta Testing & Platform
+            SettingsSectionHeader(title = "Public Beta & Platform")
             Card(
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SettingsRowItem(icon = Icons.Default.Info, title = "About FG TIME", subtitle = "Version 1.0.0 • Green Leaf Edition")
-                    SettingsRowItem(icon = Icons.Default.Security, title = "Security & Two-Factor", subtitle = "Protected sessions & OTP verification")
-                    SettingsRowItem(icon = Icons.Default.HelpOutline, title = "Help & Community Guidelines", subtitle = "Safety rules and contact support")
+                    SettingsRowItem(icon = Icons.Default.RateReview, title = "Send Beta Feedback", subtitle = "Submit rating, bug report, or feature request", onClick = onSendFeedback)
+                    SettingsRowItem(icon = Icons.Default.Policy, title = "Privacy Policy", subtitle = "Google Play data handling disclosures", onClick = { showPrivacyDialog = true })
+                    SettingsRowItem(icon = Icons.Default.Info, title = "About FG TIME", subtitle = "Version 1.0.0 • Green Leaf Beta Edition", onClick = { showAboutDialog = true })
+                    SettingsRowItem(icon = Icons.Default.Security, title = "Security & Sessions", subtitle = "Protected authentication & session storage", onClick = { showSecurityDialog = true })
+                    SettingsRowItem(icon = Icons.Default.HelpOutline, title = "Community Guidelines", subtitle = "Content safety, reporting, and moderation", onClick = { showGuidelinesDialog = true })
                 }
             }
 
@@ -181,6 +189,91 @@ fun SettingsScreen(
         }
     }
 
+    if (showPrivacyDialog) {
+        AlertDialog(
+            onDismissRequest = { showPrivacyDialog = false },
+            title = { Text("Privacy Policy", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("FG TIME — Privacy & Data Safety Disclosures", fontWeight = FontWeight.Bold, color = LeafPrimary, fontSize = 13.sp)
+                    Text("1. Media & Storage: FG TIME uses the zero-permission Android Photo Picker. We never request broad READ_EXTERNAL_STORAGE permissions. Your local device storage remains private.", fontSize = 12.sp)
+                    Text("2. User Accounts: We collect basic username, optional email/phone, and user profile information strictly for user authentication and session security.", fontSize = 12.sp)
+                    Text("3. Communications: Direct messages and calls are encrypted in transit. Content is never shared with third parties.", fontSize = 12.sp)
+                    Text("4. Account Deletion: Users retain complete ownership of their data and can permanently delete their account and associated posts at any time using the Delete Account option below.", fontSize = 12.sp)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPrivacyDialog = false }) {
+                    Text("Close", fontWeight = FontWeight.Bold, color = LeafPrimary)
+                }
+            }
+        )
+    }
+
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            title = { Text("About FG TIME", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("FG TIME — Green Leaf Edition", fontWeight = FontWeight.Bold, color = LeafPrimary)
+                    Text("Version 1.0.0 (Release-Ready)")
+                    Text("A modern, clean social media platform celebrating organic connections, photos, videos, and creator growth.")
+                    Text("Colors: Emerald Green (#00C853) & Forest Green (#12372A)")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) {
+                    Text("Done", color = LeafPrimary)
+                }
+            }
+        )
+    }
+
+    if (showSecurityDialog) {
+        AlertDialog(
+            onDismissRequest = { showSecurityDialog = false },
+            title = { Text("Security & Sessions", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Session Protection:", fontWeight = FontWeight.Bold)
+                    Text("• Session tokens are stored securely in local device sandbox.")
+                    Text("• Zero unencrypted transmission of credentials.")
+                    Text("• Two-factor verification flow via SMS OTP supported.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSecurityDialog = false }) {
+                    Text("OK", color = LeafPrimary)
+                }
+            }
+        )
+    }
+
+    if (showGuidelinesDialog) {
+        AlertDialog(
+            onDismissRequest = { showGuidelinesDialog = false },
+            title = { Text("Community Guidelines", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("1. Respect Fellow Creators: Harassment, bullying, or hate speech is strictly prohibited.")
+                    Text("2. Safe Content: No spam, harmful links, or intellectual property infringements.")
+                    Text("3. Moderation: Users can report abusive posts, which are reviewed by administrators in real time.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showGuidelinesDialog = false }) {
+                    Text("Understood", color = LeafPrimary)
+                }
+            }
+        )
+    }
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -190,7 +283,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
-                        onLogout()
+                        onDeleteAccount()
                     }
                 ) {
                     Text("Delete Permanently", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
@@ -214,11 +307,16 @@ private fun SettingsSectionHeader(title: String) {
 }
 
 @Composable
-private fun SettingsRowItem(icon: ImageVector, title: String, subtitle: String) {
+private fun SettingsRowItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* action */ }
+            .clickable(onClick = onClick)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

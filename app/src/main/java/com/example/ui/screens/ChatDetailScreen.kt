@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -38,7 +42,15 @@ fun ChatDetailScreen(
     modifier: Modifier = Modifier
 ) {
     var textInput by remember { mutableStateOf("") }
-    var isRecordingVoice by remember { mutableStateOf(false) }
+    var betaNotice by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    val chatPhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            onSendMessage("", uri.toString(), false, 0)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -91,13 +103,23 @@ fun ChatDetailScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { onStartCall(conversation.participant, CallType.AUDIO) },
+                        onClick = {
+                            betaNotice = Pair(
+                                "Audio Calling in Beta",
+                                "Real-time peer-to-peer audio calling requires live TURN/STUN signaling backend infrastructure, scheduled for Beta Phase 2. Real text messaging and photo sharing from your gallery are active!"
+                            )
+                        },
                         modifier = Modifier.testTag("chat_audio_call_button")
                     ) {
                         Icon(imageVector = Icons.Default.Call, contentDescription = "Audio Call", tint = LeafPrimary)
                     }
                     IconButton(
-                        onClick = { onStartCall(conversation.participant, CallType.VIDEO) },
+                        onClick = {
+                            betaNotice = Pair(
+                                "Video Calling in Beta",
+                                "Real-time video streaming requires live WebRTC signaling and TURN relay infrastructure, scheduled for Beta Phase 2. Real messaging and gallery photo sharing are fully active!"
+                            )
+                        },
                         modifier = Modifier.testTag("chat_video_call_button")
                     ) {
                         Icon(imageVector = Icons.Default.Videocam, contentDescription = "Video Call", tint = LeafPrimary)
@@ -138,24 +160,28 @@ fun ChatDetailScreen(
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Send simulated photo attachment
+                    // Send real photo attachment from device gallery
                     IconButton(
                         onClick = {
-                            onSendMessage("", "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=800", false, 0)
+                            chatPhotoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
                         }
                     ) {
                         Icon(
                             imageVector = Icons.Default.PhotoCamera,
-                            contentDescription = "Send Photo",
+                            contentDescription = "Send Photo from Gallery",
                             tint = LeafPrimary
                         )
                     }
 
-                    // Voice note record simulation toggle
+                    // Voice note status
                     IconButton(
                         onClick = {
-                            // Instant simulated voice message send
-                            onSendMessage("Voice note (0:14)", null, true, 14)
+                            betaNotice = Pair(
+                                "Voice Notes in Beta",
+                                "Microphone audio recording and voice messaging services are being configured for Beta Phase 2. You can send text messages and gallery photos right now!"
+                            )
                         }
                     ) {
                         Icon(
@@ -203,6 +229,19 @@ fun ChatDetailScreen(
                 }
             }
         }
+    }
+
+    betaNotice?.let { (title, description) ->
+        AlertDialog(
+            onDismissRequest = { betaNotice = null },
+            title = { Text(title, fontWeight = FontWeight.Bold) },
+            text = { Text(description, fontSize = 13.sp) },
+            confirmButton = {
+                TextButton(onClick = { betaNotice = null }) {
+                    Text("Understood", fontWeight = FontWeight.Bold, color = LeafPrimary)
+                }
+            }
+        )
     }
 }
 

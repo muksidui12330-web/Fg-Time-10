@@ -27,6 +27,8 @@ data class Post(
     val isVerified: Boolean = false,
     val caption: String,
     val imageUrl: String,
+    val videoUrl: String? = null,
+    val isVideo: Boolean = false,
     val location: String = "",
     val timestamp: String,
     val likesCount: Int = 0,
@@ -138,4 +140,16 @@ data class ActiveCall(
     val isMuted: Boolean = false,
     val isSpeaker: Boolean = false,
     val isVideoFrontCamera: Boolean = true
+)
+
+data class BetaFeedback(
+    val id: String,
+    val userId: String,
+    val username: String,
+    val rating: Int,
+    val category: String,
+    val comment: String,
+    val deviceModel: String,
+    val osVersion: String,
+    val timestamp: String
 )

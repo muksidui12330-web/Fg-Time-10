@@ -37,10 +37,12 @@ fun UserProfileScreen(
     onCallClick: (CallType) -> Unit,
     onPostClick: (Post) -> Unit,
     onReportUser: () -> Unit,
+    onBlockUser: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val userPosts = remember(posts, user.id) { posts.filter { it.userId == user.id } }
+    var showMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -52,8 +54,31 @@ fun UserProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onReportUser) {
-                        Icon(imageVector = Icons.Default.ReportProblem, contentDescription = "Report", tint = MaterialTheme.colorScheme.error)
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Report @${user.username}") },
+                                leadingIcon = { Icon(Icons.Default.ReportProblem, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showMenu = false
+                                    onReportUser()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Block @${user.username}", color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = { Icon(Icons.Default.Block, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showMenu = false
+                                    onBlockUser()
+                                }
+                            )
+                        }
                     }
                 }
             )

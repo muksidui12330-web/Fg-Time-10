@@ -196,12 +196,20 @@ fun PostCard(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                AsyncImage(
-                    model = post.imageUrl,
-                    contentDescription = "Post image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (post.isVideo && !post.videoUrl.isNullOrBlank()) {
+                    FGVideoPlayer(
+                        videoUriString = post.videoUrl,
+                        modifier = Modifier.fillMaxSize(),
+                        autoPlay = false
+                    )
+                } else {
+                    AsyncImage(
+                        model = post.imageUrl,
+                        contentDescription = "Post image",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 // Animated heart popup on double tap
                 androidx.compose.animation.AnimatedVisibility(

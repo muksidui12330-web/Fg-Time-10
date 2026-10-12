@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.Post
 import com.example.data.model.User
+import com.example.ui.components.UserListDialog
 import com.example.ui.theme.LeafAccent
 import com.example.ui.theme.LeafPrimary
 import com.example.ui.theme.LeafPrimaryDark
@@ -36,6 +37,8 @@ import com.example.ui.theme.OnlineGreen
 fun ProfileScreen(
     user: User,
     posts: List<Post>,
+    networkUsers: List<User> = emptyList(),
+    onUserClick: (User) -> Unit = {},
     onEditProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onPostClick: (Post) -> Unit,
@@ -43,6 +46,8 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Posts, 1: Saved, 2: Liked
+    var showFollowersDialog by remember { mutableStateOf(false) }
+    var showFollowingDialog by remember { mutableStateOf(false) }
 
     val myPosts = remember(posts, user.id) { posts.filter { it.userId == user.id } }
     val savedPosts = remember(posts) { posts.filter { it.isSaved } }
@@ -213,9 +218,9 @@ fun ProfileScreen(
                 ) {
                     StatColumn(count = "${user.postsCount}", label = "Posts")
                     VerticalDivider(modifier = Modifier.height(30.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    StatColumn(count = "${user.followersCount}", label = "Followers")
+                    StatColumn(count = "${user.followersCount}", label = "Followers", onClick = { showFollowersDialog = true })
                     VerticalDivider(modifier = Modifier.height(30.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    StatColumn(count = "${user.followingCount}", label = "Following")
+                    StatColumn(count = "${user.followingCount}", label = "Following", onClick = { showFollowingDialog = true })
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -324,11 +329,32 @@ fun ProfileScreen(
             }
         }
     }
+
+    if (showFollowersDialog) {
+        UserListDialog(
+            title = "Followers",
+            users = networkUsers.filter { it.isFollowing },
+            onUserClick = onUserClick,
+            onDismiss = { showFollowersDialog = false }
+        )
+    }
+
+    if (showFollowingDialog) {
+        UserListDialog(
+            title = "Following",
+            users = networkUsers.filter { it.isFollowing },
+            onUserClick = onUserClick,
+            onDismiss = { showFollowingDialog = false }
+        )
+    }
 }
 
 @Composable
-private fun StatColumn(count: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatColumn(count: String, label: String, onClick: () -> Unit = {}) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
         Text(
             text = count,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black)

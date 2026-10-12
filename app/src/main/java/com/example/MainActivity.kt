@@ -1,10 +1,14 @@
 package com.example
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -61,9 +65,26 @@ fun FGTimeApp(viewModel: MainViewModel) {
     val notifications by repository.notifications.collectAsStateWithLifecycle()
     val suggestedUsers by repository.suggestedUsers.collectAsStateWithLifecycle()
     val reports by repository.reports.collectAsStateWithLifecycle()
+    val feedbacks by repository.betaFeedbacks.collectAsStateWithLifecycle()
+    val blockedUserIds by repository.blockedUserIds.collectAsStateWithLifecycle()
     val commentsMap by repository.comments.collectAsStateWithLifecycle()
 
+    var showBetaFeedbackDialog by remember { mutableStateOf(false) }
+
+    val visiblePosts = remember(posts, blockedUserIds) {
+        posts.filterNot { it.userId in blockedUserIds }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val storyPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            repository.addStory(uri.toString())
+            viewModel.showToast("Story shared to FG TIME! 🌿")
+        }
+    }
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
@@ -130,13 +151,14 @@ fun FGTimeApp(viewModel: MainViewModel) {
             when (currentScreen) {
                 Screen.HOME -> {
                     HomeScreen(
-                        posts = posts,
+                        posts = visiblePosts,
                         stories = stories,
                         currentUser = currentUser,
                         onStoryClick = { viewModel.openStory(it) },
                         onAddStoryClick = {
-                            repository.addStory("https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800")
-                            viewModel.showToast("Story uploaded to FG TIME! 🌿")
+                            storyPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                            )
                         },
                         onUserClick = { userId ->
                             val targetUser = suggestedUsers.find { it.id == userId }
@@ -179,9 +201,10 @@ fun FGTimeApp(viewModel: MainViewModel) {
 
                 Screen.CREATE -> {
                     CreatePostScreen(
-                        onPublish = { caption, imageUrl, location, tags ->
-                            repository.createPost(caption, imageUrl, location, tags)
-                            viewModel.showToast("Post published successfully! 🍃")
+                        onPublish = { caption, imageUrl, videoUrl, isVideo, location, tags ->
+                            repository.createPost(caption, imageUrl, videoUrl, isVideo, location, tags)
+                            val message = if (isVideo) "Video published to Feed & Reels! 🎥🌿" else "Post published successfully! 🍃"
+                            viewModel.showToast(message)
                             viewModel.navigateTo(Screen.HOME)
                         },
                         onCancel = { viewModel.navigateBack() }
@@ -232,7 +255,9 @@ fun FGTimeApp(viewModel: MainViewModel) {
                 Screen.PROFILE -> {
                     ProfileScreen(
                         user = currentUser,
-                        posts = posts,
+                        posts = visiblePosts,
+                        networkUsers = suggestedUsers,
+                        onUserClick = { viewModel.openUserProfile(it) },
                         onEditProfileClick = { viewModel.openEditProfile() },
                         onSettingsClick = { viewModel.navigateTo(Screen.SETTINGS) },
                         onPostClick = { viewModel.openComments(it) },
@@ -272,11 +297,16 @@ fun FGTimeApp(viewModel: MainViewModel) {
                                 )
                                 viewModel.openConversation(conv)
                             },
-                            onCallClick = { type ->
-                                repository.startCall(user, type)
+                            onCallClick = {
+                                viewModel.showToast("Voice & Video Calling: Signaling servers scheduled for Beta Phase 2. Real messaging is active!")
                             },
                             onPostClick = { viewModel.openComments(it) },
                             onReportUser = { viewModel.openReportDialog("USER", user.id) },
+                            onBlockUser = {
+                                repository.blockUser(user.id)
+                                viewModel.showToast("Blocked @${user.username}")
+                                viewModel.navigateBack()
+                            },
                             onBack = { viewModel.navigateBack() }
                         )
                     }
@@ -303,8 +333,14 @@ fun FGTimeApp(viewModel: MainViewModel) {
                                 repository.updateProfile(it.fullName, it.username, it.bio, it.website, it.avatarUrl, it.coverUrl, isPriv)
                             }
                         },
+                        onSendFeedback = { showBetaFeedbackDialog = true },
                         onLogout = {
                             repository.logout()
+                            viewModel.navigateTo(Screen.HOME)
+                        },
+                        onDeleteAccount = {
+                            repository.deleteAccount()
+                            viewModel.showToast("Account and data deleted.")
                             viewModel.navigateTo(Screen.HOME)
                         },
                         onBack = { viewModel.navigateBack() }
@@ -314,6 +350,7 @@ fun FGTimeApp(viewModel: MainViewModel) {
                 Screen.ADMIN_DASHBOARD -> {
                     AdminDashboardScreen(
                         reports = reports,
+                        feedbacks = feedbacks,
                         totalPostsCount = posts.size,
                         onResolveReport = { id, dismiss ->
                             repository.resolveReport(id, dismiss)
@@ -388,6 +425,17 @@ fun FGTimeApp(viewModel: MainViewModel) {
                 viewModel.showToast("Report submitted to FG TIME moderators. Thank you!")
             },
             onDismiss = { viewModel.closeReportDialog() }
+        )
+    }
+
+    // Beta Feedback Dialog
+    if (showBetaFeedbackDialog) {
+        BetaFeedbackDialog(
+            onSubmit = { rating, cat, comment, model, os ->
+                repository.submitBetaFeedback(rating, cat, comment, model, os)
+                viewModel.showToast("Thank you for your beta feedback! 🌿")
+            },
+            onDismiss = { showBetaFeedbackDialog = false }
         )
     }
 }
